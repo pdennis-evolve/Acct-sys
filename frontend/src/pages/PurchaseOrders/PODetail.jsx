@@ -1,19 +1,24 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
 import client from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
 
-const BLANK_LINE = () => ({ description: "", quantity: 1, unit_price: 0, account_id: "" });
+const BLANK_LINE = () => ({ description: "", quantity: 1, unit_price: 0, account_id: "", item_id: "" });
 
 export default function PODetail() {
   const { id } = useParams();
   const isNew = id === "new";
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { hasModule } = useAuth();
 
   const [po, setPo] = useState(null);
   const [vendors, setVendors] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [items, setItems] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [vendorId, setVendorId] = useState(searchParams.get("vendor_id") || "");
+  const [locationId, setLocationId] = useState("");
   const [expectedDate, setExpectedDate] = useState("");
   const [lines, setLines] = useState([BLANK_LINE()]);
   const [memo, setMemo] = useState("");
@@ -21,8 +26,14 @@ export default function PODetail() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  const inventoryEnabled = hasModule("inventory");
+
   useEffect(() => {
     client.get("/accounts").then((res) => setAccounts(res.data.accounts.filter((a) => a.type === "expense")));
+    if (inventoryEnabled) {
+      client.get("/items").then((res) => setItems(res.data.items.filter((i) => i.is_active)));
+      client.get("/locations").then((res) => setLocations(res.data.locations));
+    }
 
     if (isNew) {
       setPo(null);
@@ -35,6 +46,7 @@ export default function PODetail() {
       const p = res.data.purchase_order;
       setPo(p);
       setExpectedDate(p.expected_date || "");
+      setLocationId(p.location_id || "");
       setLines(p.lines.length ? p.lines : [BLANK_LINE()]);
       setMemo(p.memo || "");
       setLoading(false);
@@ -43,6 +55,20 @@ export default function PODetail() {
 
   function updateLine(idx, field, value) {
     setLines((ls) => ls.map((l, i) => (i === idx ? { ...l, [field]: value } : l)));
+  }
+  function applyItem(idx, itemId) {
+    const item = items.find((i) => i.id === itemId);
+    setLines((ls) => ls.map((l, i) => {
+      if (i !== idx) return l;
+      if (!item) return { ...l, item_id: "" };
+      return {
+        ...l,
+        item_id: item.id,
+        description: l.description || item.name,
+        unit_price: item.unit_cost,
+        account_id: l.account_id || item.expense_account_id || "",
+      };
+    }));
   }
   function addLine() {
     setLines((ls) => [...ls, BLANK_LINE()]);
@@ -62,7 +88,7 @@ export default function PODetail() {
     }
     setSaving(true);
     try {
-      const payload = { lines, memo, expected_date: expectedDate || null };
+      const payload = { lines, memo, expected_date: expectedDate || null, location_id: locationId || null };
       if (isNew) {
         payload.vendor_id = vendorId;
         const res = await client.post("/purchase-orders", payload);
@@ -136,18 +162,46 @@ export default function PODetail() {
           </label>
         )}
 
-        <label>
-          Expected Delivery Date
-          <input type="date" value={expectedDate} disabled={!editable} onChange={(e) => setExpectedDate(e.target.value)} />
-        </label>
+        <div className="form-row">
+          <label>
+            Expected Delivery Date
+            <input type="date" value={expectedDate} disabled={!editable} onChange={(e) => setExpectedDate(e.target.value)} />
+          </label>
+          {inventoryEnabled && (
+            <label>
+              Receiving Location
+              <select value={locationId} disabled={!editable} onChange={(e) => setLocationId(e.target.value)}>
+                <option value="">Default location</option>
+                {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+            </label>
+          )}
+        </div>
 
         <table className="data-table line-items">
           <thead>
-            <tr><th>Description</th><th>GL Account</th><th>Qty</th><th>Unit Price</th><th>Amount</th>{editable && <th></th>}</tr>
+            <tr>
+              {items.length > 0 && <th>Item</th>}
+              <th>Description</th><th>GL Account</th><th>Qty</th><th>Unit Price</th><th>Amount</th>{editable && <th></th>}
+            </tr>
           </thead>
           <tbody>
             {lines.map((l, idx) => (
               <tr key={idx}>
+                {items.length > 0 && (
+                  <td>
+                    <select
+                      value={l.item_id || ""}
+                      disabled={!editable}
+                      onChange={(e) => applyItem(idx, e.target.value)}
+                    >
+                      <option value="">Custom line</option>
+                      {items.map((it) => (
+                        <option key={it.id} value={it.id}>{it.sku} - {it.name}</option>
+                      ))}
+                    </select>
+                  </td>
+                )}
                 <td>
                   <input
                     value={l.description}

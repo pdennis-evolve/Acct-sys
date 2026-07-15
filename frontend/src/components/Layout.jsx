@@ -33,6 +33,14 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    heading: "Inventory",
+    module: "inventory",
+    items: [
+      { to: "/items", label: "Items" },
+      { to: "/locations", label: "Locations" },
+    ],
+  },
+  {
     heading: "Reports",
     module: "ar_ap",
     roles: ["owner_admin", "accountant", "read_only_auditor"],

@@ -38,6 +38,10 @@ class Invoice(UUIDPKMixin, TimestampMixin, TenantScopedMixin, SoftDeleteMixin, A
     memo: Mapped[str | None] = mapped_column(db.Text, nullable=True)
     terms: Mapped[str | None] = mapped_column(db.String(200), nullable=True)
 
+    # Location stock is decremented from on send (and restocked on void).
+    # Nullable so tenants without the inventory module never need one.
+    location_id: Mapped[str | None] = mapped_column(db.ForeignKey("locations.id"), nullable=True)
+
     customer = relationship("Customer", lazy="joined")
     tax_rate = relationship("TaxRate", lazy="joined")
     lines = relationship(
@@ -99,6 +103,7 @@ class Invoice(UUIDPKMixin, TimestampMixin, TenantScopedMixin, SoftDeleteMixin, A
             "tax_rate_name": self.tax_rate.name if self.tax_rate else None,
             "memo": self.memo,
             "terms": self.terms,
+            "location_id": self.location_id,
         }
         if include_lines:
             d["lines"] = [l.to_dict() for l in self.lines]
@@ -114,6 +119,7 @@ class InvoiceLine(UUIDPKMixin, TenantScopedMixin, db.Model):
     account_id: Mapped[str | None] = mapped_column(
         db.ForeignKey("accounts.id"), nullable=True
     )
+    item_id: Mapped[str | None] = mapped_column(db.ForeignKey("items.id"), nullable=True)
     description: Mapped[str] = mapped_column(db.String(500), nullable=False)
     quantity: Mapped[Decimal] = mapped_column(db.Numeric(14, 4), nullable=False, default=1)
     unit_price: Mapped[Decimal] = mapped_column(db.Numeric(14, 4), nullable=False, default=0)
@@ -124,6 +130,7 @@ class InvoiceLine(UUIDPKMixin, TenantScopedMixin, db.Model):
         return {
             "id": self.id,
             "account_id": self.account_id,
+            "item_id": self.item_id,
             "description": self.description,
             "quantity": str(self.quantity),
             "unit_price": str(self.unit_price),

@@ -14,6 +14,8 @@ def register_blueprints(app):
     from app.api.purchase_orders import bp as purchase_orders_bp
     from app.api.vendor_payments import bp as vendor_payments_bp
     from app.api.reports import bp as reports_bp
+    from app.api.locations import bp as locations_bp
+    from app.api.items import bp as items_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(super_admin_bp, url_prefix="/api/admin")
@@ -30,3 +32,5 @@ def register_blueprints(app):
     app.register_blueprint(purchase_orders_bp, url_prefix="/api/purchase-orders")
     app.register_blueprint(vendor_payments_bp, url_prefix="/api/vendor-payments")
     app.register_blueprint(reports_bp, url_prefix="/api/reports")
+    app.register_blueprint(locations_bp, url_prefix="/api/locations")
+    app.register_blueprint(items_bp, url_prefix="/api/items")

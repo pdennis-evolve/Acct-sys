@@ -4,10 +4,11 @@ from decimal import Decimal, InvalidOperation
 from flask import Blueprint, request, jsonify, g
 
 from app.extensions import db
-from app.models import PurchaseOrder, PurchaseOrderLine, Vendor, Bill, BillLine
+from app.models import PurchaseOrder, PurchaseOrderLine, Vendor, Bill, BillLine, Item
 from app.middleware.tenant_scope import tenant_required, scoped_query, stamp_tenant
 from app.utils.decorators import role_required, module_required
 from app.services.audit import log_action
+from app.services.inventory import record_movement, resolve_location
 
 bp = Blueprint("purchase_orders", __name__)
 
@@ -36,8 +37,11 @@ def _apply_lines(po, lines_data):
             unit_price=price,
             amount=amount,
             account_id=line.get("account_id") or None,
+            item_id=line.get("item_id") or None,
             sort_order=i,
         ))
+
+
 
 
 def _next_po_number():
@@ -94,6 +98,7 @@ def create_purchase_order():
         order_date=_parse_date(data.get("order_date"), datetime.utcnow().date()),
         expected_date=_parse_date(data.get("expected_date")),
         memo=data.get("memo"),
+        location_id=data.get("location_id") or None,
         created_by=g.user_id,
     ))
     _apply_lines(po, data.get("lines"))
@@ -127,6 +132,8 @@ def update_purchase_order(po_id):
         po.order_date = _parse_date(data["order_date"])
     if "expected_date" in data:
         po.expected_date = _parse_date(data["expected_date"])
+    if "location_id" in data:
+        po.location_id = data["location_id"] or None
     if "lines" in data:
         _apply_lines(po, data["lines"])
         changes["lines"] = "updated"
@@ -160,13 +167,30 @@ def send_purchase_order(po_id):
 @module_required("ar_ap")
 @role_required(*WRITE_ROLES)
 def receive_purchase_order(po_id):
-    """Marks goods/services received. Does not touch inventory stock --
-    that wiring lands in Phase 3 alongside items/SKUs."""
+    """Marks goods received and increments stock for any line tied to an
+    inventory-tracked Item, at the PO's location (or the tenant default)."""
     po = scoped_query(PurchaseOrder).filter_by(id=po_id).first()
     if not po:
         return jsonify(error="Purchase order not found"), 404
     if po.status != "sent":
         return jsonify(error=f"Purchase order in status '{po.status}' cannot be received"), 409
+
+    item_ids = [l.item_id for l in po.lines if l.item_id]
+    if item_ids:
+        items = {i.id: i for i in scoped_query(Item).filter(Item.id.in_(item_ids)).all()}
+        inventory_lines = [l for l in po.lines if l.item_id and items.get(l.item_id) and items[l.item_id].tracks_inventory]
+        if inventory_lines:
+            location = resolve_location(po.location_id)
+            if not location:
+                return jsonify(error="No location set on this PO and no default location exists for this tenant"), 400
+            for line in inventory_lines:
+                record_movement(
+                    item_id=line.item_id, location_id=location.id, txn_type="receipt",
+                    quantity_delta=line.quantity, unit_cost=line.unit_price,
+                    txn_date=datetime.utcnow().date(), memo=f"Received via {po.po_number}",
+                    reference_type="purchase_order", reference_id=po.id,
+                )
+
     po.status = "received"
     po.updated_by = g.user_id
     log_action("purchase_order", po.id, "receive")
@@ -223,6 +247,7 @@ def convert_to_bill(po_id):
             unit_price=line.unit_price,
             amount=line.amount,
             account_id=line.account_id,
+            item_id=line.item_id,
             sort_order=line.sort_order,
         ))
     bill.recalculate_totals()

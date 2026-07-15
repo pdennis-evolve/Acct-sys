@@ -9,7 +9,7 @@ load_dotenv()
 
 from app import create_app
 from app.extensions import db
-from app.models import Tenant, User, SuperAdmin, Account, CompanySettings, TaxRate, ALL_MODULES
+from app.models import Tenant, User, SuperAdmin, Account, CompanySettings, TaxRate, Location, ALL_MODULES
 
 app = create_app()
 
@@ -85,6 +85,10 @@ def seed():
                 jurisdiction="Demo State", is_default=True,
             ))
             print("Added default tax rate")
+
+        if not Location.query.filter_by(tenant_id=demo.id).first():
+            db.session.add(Location(tenant_id=demo.id, name="Main Warehouse", is_default=True))
+            print("Added default location")
 
         db.session.commit()
 

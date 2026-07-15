@@ -10,8 +10,8 @@ PO_STATUSES = ["draft", "sent", "received", "closed", "cancelled"]
 
 
 class PurchaseOrder(UUIDPKMixin, TimestampMixin, TenantScopedMixin, SoftDeleteMixin, AuditStampMixin, db.Model):
-    """Tracked manually for now (draft/sent/received/closed/cancelled) --
-    inventory stock wiring lands in Phase 3 alongside items/SKUs."""
+    """draft -> sent -> received. Receiving increments stock at
+    location_id for any line tied to an inventory-tracked Item."""
 
     __tablename__ = "purchase_orders"
     __table_args__ = (
@@ -30,6 +30,7 @@ class PurchaseOrder(UUIDPKMixin, TimestampMixin, TenantScopedMixin, SoftDeleteMi
     subtotal: Mapped[Decimal] = mapped_column(db.Numeric(14, 2), nullable=False, default=0)
     memo: Mapped[str | None] = mapped_column(db.Text, nullable=True)
 
+    location_id: Mapped[str | None] = mapped_column(db.ForeignKey("locations.id"), nullable=True)
     converted_bill_id: Mapped[str | None] = mapped_column(db.ForeignKey("bills.id"), nullable=True)
 
     vendor = relationship("Vendor", lazy="joined")
@@ -52,6 +53,7 @@ class PurchaseOrder(UUIDPKMixin, TimestampMixin, TenantScopedMixin, SoftDeleteMi
             "expected_date": self.expected_date.isoformat() if self.expected_date else None,
             "subtotal": str(self.subtotal),
             "memo": self.memo,
+            "location_id": self.location_id,
             "converted_bill_id": self.converted_bill_id,
         }
         if include_lines:
@@ -68,6 +70,7 @@ class PurchaseOrderLine(UUIDPKMixin, TenantScopedMixin, db.Model):
     account_id: Mapped[str | None] = mapped_column(
         db.ForeignKey("accounts.id"), nullable=True
     )
+    item_id: Mapped[str | None] = mapped_column(db.ForeignKey("items.id"), nullable=True)
     description: Mapped[str] = mapped_column(db.String(500), nullable=False)
     quantity: Mapped[Decimal] = mapped_column(db.Numeric(14, 4), nullable=False, default=1)
     unit_price: Mapped[Decimal] = mapped_column(db.Numeric(14, 4), nullable=False, default=0)
@@ -78,6 +81,7 @@ class PurchaseOrderLine(UUIDPKMixin, TenantScopedMixin, db.Model):
         return {
             "id": self.id,
             "account_id": self.account_id,
+            "item_id": self.item_id,
             "description": self.description,
             "quantity": str(self.quantity),
             "unit_price": str(self.unit_price),

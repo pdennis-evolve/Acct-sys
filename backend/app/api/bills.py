@@ -36,6 +36,7 @@ def _apply_lines(bill, lines_data):
             unit_price=price,
             amount=amount,
             account_id=line.get("account_id") or None,
+            item_id=line.get("item_id") or None,
             sort_order=i,
         ))
 

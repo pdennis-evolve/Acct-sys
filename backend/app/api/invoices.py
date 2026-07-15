@@ -4,11 +4,12 @@ from decimal import Decimal, InvalidOperation
 from flask import Blueprint, request, jsonify, g, Response
 
 from app.extensions import db
-from app.models import Invoice, InvoiceLine, Customer, CompanySettings, TaxRate
+from app.models import Invoice, InvoiceLine, Customer, CompanySettings, TaxRate, Item
 from app.middleware.tenant_scope import tenant_required, scoped_query, stamp_tenant
 from app.utils.decorators import role_required, module_required
 from app.services.audit import log_action
 from app.services.pdf import render_invoice_pdf
+from app.services.inventory import record_movement, resolve_location
 
 bp = Blueprint("invoices", __name__)
 
@@ -37,6 +38,7 @@ def _apply_lines(invoice, lines_data):
             unit_price=price,
             amount=amount,
             account_id=line.get("account_id") or None,
+            item_id=line.get("item_id") or None,
             sort_order=i,
         ))
 
@@ -129,6 +131,7 @@ def create_invoice():
         due_date=due_date,
         memo=data.get("memo"),
         terms=data.get("terms"),
+        location_id=data.get("location_id") or None,
         created_by=g.user_id,
     ))
     _apply_lines(invoice, data.get("lines"))
@@ -162,6 +165,8 @@ def update_invoice(invoice_id):
         invoice.issue_date = _parse_date(data["issue_date"])
     if "due_date" in data:
         invoice.due_date = _parse_date(data["due_date"])
+    if "location_id" in data:
+        invoice.location_id = data["location_id"] or None
     if "lines" in data:
         _apply_lines(invoice, data["lines"])
         changes["lines"] = "updated"
@@ -186,11 +191,31 @@ def update_invoice(invoice_id):
 @module_required("ar_ap")
 @role_required(*WRITE_ROLES)
 def send_invoice(invoice_id):
+    """draft -> sent. Decrements stock for any line tied to an
+    inventory-tracked Item -- this is the one-time transition where the
+    sale is finalized, so it's the right point to move inventory."""
     invoice = scoped_query(Invoice).filter_by(id=invoice_id).first()
     if not invoice:
         return jsonify(error="Invoice not found"), 404
     if invoice.status != "draft":
         return jsonify(error=f"Invoice in status '{invoice.status}' cannot be sent"), 409
+
+    item_ids = [l.item_id for l in invoice.lines if l.item_id]
+    if item_ids:
+        items = {i.id: i for i in scoped_query(Item).filter(Item.id.in_(item_ids)).all()}
+        inventory_lines = [l for l in invoice.lines if l.item_id and items.get(l.item_id) and items[l.item_id].tracks_inventory]
+        if inventory_lines:
+            location = resolve_location(invoice.location_id)
+            if not location:
+                return jsonify(error="No location set on this invoice and no default location exists for this tenant"), 400
+            for line in inventory_lines:
+                record_movement(
+                    item_id=line.item_id, location_id=location.id, txn_type="sale",
+                    quantity_delta=-line.quantity, unit_cost=items[line.item_id].unit_cost,
+                    txn_date=invoice.issue_date, memo=f"Sold on {invoice.invoice_number}",
+                    reference_type="invoice", reference_id=invoice.id,
+                )
+
     invoice.status = "sent"
     invoice.updated_by = g.user_id
     log_action("invoice", invoice.id, "send")
@@ -203,9 +228,30 @@ def send_invoice(invoice_id):
 @module_required("ar_ap")
 @role_required("owner_admin", "accountant")
 def void_invoice(invoice_id):
+    """Restocks any inventory-tracked lines if stock was already
+    decremented (i.e. the invoice had been sent) -- draft invoices never
+    touched stock, so voiding one has nothing to reverse."""
     invoice = scoped_query(Invoice).filter_by(id=invoice_id).first()
     if not invoice:
         return jsonify(error="Invoice not found"), 404
+
+    was_sent = invoice.status in ("sent", "partial", "paid")
+    if was_sent:
+        item_ids = [l.item_id for l in invoice.lines if l.item_id]
+        if item_ids:
+            items = {i.id: i for i in scoped_query(Item).filter(Item.id.in_(item_ids)).all()}
+            inventory_lines = [l for l in invoice.lines if l.item_id and items.get(l.item_id) and items[l.item_id].tracks_inventory]
+            if inventory_lines:
+                location = resolve_location(invoice.location_id)
+                if location:
+                    for line in inventory_lines:
+                        record_movement(
+                            item_id=line.item_id, location_id=location.id, txn_type="return",
+                            quantity_delta=line.quantity, unit_cost=items[line.item_id].unit_cost,
+                            txn_date=datetime.utcnow().date(), memo=f"Void of {invoice.invoice_number}",
+                            reference_type="invoice_void", reference_id=invoice.id,
+                        )
+
     invoice.status = "void"
     invoice.balance_due = Decimal("0")
     invoice.updated_by = g.user_id

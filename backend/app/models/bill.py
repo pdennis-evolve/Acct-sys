@@ -96,6 +96,7 @@ class BillLine(UUIDPKMixin, TenantScopedMixin, db.Model):
     account_id: Mapped[str | None] = mapped_column(
         db.ForeignKey("accounts.id"), nullable=True
     )
+    item_id: Mapped[str | None] = mapped_column(db.ForeignKey("items.id"), nullable=True)
     description: Mapped[str] = mapped_column(db.String(500), nullable=False)
     quantity: Mapped[Decimal] = mapped_column(db.Numeric(14, 4), nullable=False, default=1)
     unit_price: Mapped[Decimal] = mapped_column(db.Numeric(14, 4), nullable=False, default=0)
@@ -106,6 +107,7 @@ class BillLine(UUIDPKMixin, TenantScopedMixin, db.Model):
         return {
             "id": self.id,
             "account_id": self.account_id,
+            "item_id": self.item_id,
             "description": self.description,
             "quantity": str(self.quantity),
             "unit_price": str(self.unit_price),

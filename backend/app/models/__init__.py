@@ -4,6 +4,9 @@ from app.models.company_settings import CompanySettings
 from app.models.account import Account, ACCOUNT_TYPES
 from app.models.tax_rate import TaxRate
 from app.models.customer import Customer, CustomerContact
+from app.models.location import Location
+from app.models.item import Item, ITEM_TYPES
+from app.models.inventory import StockLevel, InventoryTransaction, INVENTORY_TXN_TYPES
 from app.models.invoice import Invoice, InvoiceLine, INVOICE_STATUSES
 from app.models.cash_account import CashAccount, CashTransaction, CASH_ACCOUNT_TYPES, CASH_TXN_TYPES
 from app.models.payment import Payment, PaymentApplication, PAYMENT_METHODS
@@ -20,6 +23,9 @@ __all__ = [
     "Account", "ACCOUNT_TYPES",
     "TaxRate",
     "Customer", "CustomerContact",
+    "Location",
+    "Item", "ITEM_TYPES",
+    "StockLevel", "InventoryTransaction", "INVENTORY_TXN_TYPES",
     "Invoice", "InvoiceLine", "INVOICE_STATUSES",
     "CashAccount", "CashTransaction", "CASH_ACCOUNT_TYPES", "CASH_TXN_TYPES",
     "Payment", "PaymentApplication", "PAYMENT_METHODS",

@@ -30,6 +30,9 @@ import ProfitLoss from "./pages/Reports/ProfitLoss";
 import IncomeReport from "./pages/Reports/IncomeReport";
 import SalesTax from "./pages/Reports/SalesTax";
 import AgingReceivables from "./pages/Reports/AgingReceivables";
+import ItemList from "./pages/Items/ItemList";
+import ItemDetail from "./pages/Items/ItemDetail";
+import LocationList from "./pages/Locations/LocationList";
 import SuperAdminLogin from "./pages/SuperAdmin/SuperAdminLogin";
 import TenantList from "./pages/SuperAdmin/TenantList";
 import TenantDetail from "./pages/SuperAdmin/TenantDetail";
@@ -75,6 +78,9 @@ export default function App() {
             <Route path="reports/income" element={<IncomeReport />} />
             <Route path="reports/sales-tax" element={<SalesTax />} />
             <Route path="reports/aging-receivables" element={<AgingReceivables />} />
+            <Route path="items" element={<ItemList />} />
+            <Route path="items/:id" element={<ItemDetail />} />
+            <Route path="locations" element={<LocationList />} />
           </Route>
 
           <Route
