@@ -9,7 +9,7 @@ load_dotenv()
 
 from app import create_app
 from app.extensions import db
-from app.models import Tenant, User, SuperAdmin, Account, CompanySettings, ALL_MODULES
+from app.models import Tenant, User, SuperAdmin, Account, CompanySettings, TaxRate, ALL_MODULES
 
 app = create_app()
 
@@ -53,20 +53,38 @@ def seed():
             settings = CompanySettings(tenant_id=demo.id, company_name="Demo Company")
             db.session.add(settings)
 
-            starter_accounts = [
-                ("1000", "Cash and Bank", "asset"),
-                ("1200", "Accounts Receivable", "asset"),
-                ("2000", "Accounts Payable", "liability"),
-                ("3000", "Owner's Equity", "equity"),
-                ("4000", "Sales Revenue", "income"),
-                ("5000", "General Expenses", "expense"),
-            ]
-            for code, name, type_ in starter_accounts:
-                db.session.add(Account(tenant_id=demo.id, code=code, name=name, type=type_))
-
             print("Created demo owner user: owner@demo.com / Demo123!")
         else:
             print("Demo tenant already exists (slug=demo)")
+
+        # Top up an existing demo tenant with any starter accounts/rates
+        # added since it was first created -- keeps re-runs idempotent
+        # instead of only seeding fully-fresh tenants.
+        existing_codes = {a.code for a in Account.query.filter_by(tenant_id=demo.id).all()}
+        starter_accounts = [
+            ("1000", "Cash and Bank", "asset"),
+            ("1200", "Accounts Receivable", "asset"),
+            ("2000", "Accounts Payable", "liability"),
+            ("3000", "Owner's Equity", "equity"),
+            ("4000", "Sales Revenue", "income"),
+            ("4100", "Service Revenue", "income"),
+            ("5000", "General Expenses", "expense"),
+            ("5100", "Cost of Goods Sold", "expense"),
+            ("5200", "Rent Expense", "expense"),
+            ("5300", "Utilities Expense", "expense"),
+            ("5400", "Office Supplies Expense", "expense"),
+        ]
+        for code, name, type_ in starter_accounts:
+            if code not in existing_codes:
+                db.session.add(Account(tenant_id=demo.id, code=code, name=name, type=type_))
+                print(f"Added missing starter account {code} {name}")
+
+        if not TaxRate.query.filter_by(tenant_id=demo.id).first():
+            db.session.add(TaxRate(
+                tenant_id=demo.id, name="State Sales Tax", rate="0.0700",
+                jurisdiction="Demo State", is_default=True,
+            ))
+            print("Added default tax rate")
 
         db.session.commit()
 

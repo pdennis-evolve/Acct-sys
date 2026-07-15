@@ -51,6 +51,9 @@ class CashTransaction(UUIDPKMixin, TimestampMixin, TenantScopedMixin, SoftDelete
     related_payment_id: Mapped[str | None] = mapped_column(
         db.ForeignKey("payments.id"), nullable=True
     )
+    related_vendor_payment_id: Mapped[str | None] = mapped_column(
+        db.ForeignKey("vendor_payments.id"), nullable=True
+    )
 
     def to_dict(self):
         return {
@@ -63,4 +66,5 @@ class CashTransaction(UUIDPKMixin, TimestampMixin, TenantScopedMixin, SoftDelete
             "memo": self.memo,
             "check_number": self.check_number,
             "related_payment_id": self.related_payment_id,
+            "related_vendor_payment_id": self.related_vendor_payment_id,
         }

@@ -29,18 +29,28 @@ class Invoice(UUIDPKMixin, TimestampMixin, TenantScopedMixin, SoftDeleteMixin, A
     total: Mapped[Decimal] = mapped_column(db.Numeric(14, 2), nullable=False, default=0)
     balance_due: Mapped[Decimal] = mapped_column(db.Numeric(14, 2), nullable=False, default=0)
 
+    # Rate is snapshotted at calc time (not just derived live from TaxRate)
+    # so sales tax reports stay accurate even if the tenant edits/retires
+    # a tax rate later.
+    tax_rate_id: Mapped[str | None] = mapped_column(db.ForeignKey("tax_rates.id"), nullable=True)
+    tax_rate_pct: Mapped[Decimal] = mapped_column(db.Numeric(6, 4), nullable=False, default=0)
+
     memo: Mapped[str | None] = mapped_column(db.Text, nullable=True)
     terms: Mapped[str | None] = mapped_column(db.String(200), nullable=True)
 
     customer = relationship("Customer", lazy="joined")
+    tax_rate = relationship("TaxRate", lazy="joined")
     lines = relationship(
         "InvoiceLine", backref="invoice", cascade="all, delete-orphan",
         order_by="InvoiceLine.sort_order", lazy="selectin",
     )
-    def recalculate_totals(self, tax_rate: Decimal = Decimal("0")):
+
+    def recalculate_totals(self, tax_rate: Decimal = Decimal("0"), tax_rate_id: str | None = None):
         """Full recompute from line items + tax rate. Used on invoice
         create/edit, while the invoice is still in draft."""
         self.subtotal = sum((l.amount for l in self.lines), Decimal("0"))
+        self.tax_rate_pct = tax_rate
+        self.tax_rate_id = tax_rate_id
         self.tax_total = (self.subtotal * tax_rate).quantize(Decimal("0.01"))
         self.total = self.subtotal + self.tax_total
         self.refresh_balance()
@@ -84,6 +94,9 @@ class Invoice(UUIDPKMixin, TimestampMixin, TenantScopedMixin, SoftDeleteMixin, A
             "tax_total": str(self.tax_total),
             "total": str(self.total),
             "balance_due": str(self.balance_due),
+            "tax_rate_id": self.tax_rate_id,
+            "tax_rate_pct": str(self.tax_rate_pct),
+            "tax_rate_name": self.tax_rate.name if self.tax_rate else None,
             "memo": self.memo,
             "terms": self.terms,
         }

@@ -4,47 +4,39 @@ import client from "../../api/client";
 
 const BLANK_LINE = () => ({ description: "", quantity: 1, unit_price: 0, account_id: "" });
 
-export default function InvoiceDetail() {
+export default function PODetail() {
   const { id } = useParams();
   const isNew = id === "new";
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const [invoice, setInvoice] = useState(null);
-  const [customers, setCustomers] = useState([]);
+  const [po, setPo] = useState(null);
+  const [vendors, setVendors] = useState([]);
   const [accounts, setAccounts] = useState([]);
-  const [taxRates, setTaxRates] = useState([]);
-  const [customerId, setCustomerId] = useState(searchParams.get("customer_id") || "");
+  const [vendorId, setVendorId] = useState(searchParams.get("vendor_id") || "");
+  const [expectedDate, setExpectedDate] = useState("");
   const [lines, setLines] = useState([BLANK_LINE()]);
-  const [taxRateId, setTaxRateId] = useState("");
   const [memo, setMemo] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    client.get("/accounts").then((res) => setAccounts(res.data.accounts.filter((a) => a.type === "income")));
-    client.get("/tax-rates").then((res) => {
-      setTaxRates(res.data.tax_rates);
-      if (isNew) {
-        const def = res.data.tax_rates.find((r) => r.is_default);
-        if (def) setTaxRateId(def.id);
-      }
-    });
+    client.get("/accounts").then((res) => setAccounts(res.data.accounts.filter((a) => a.type === "expense")));
 
     if (isNew) {
-      setInvoice(null);
+      setPo(null);
       setLoading(false);
-      client.get("/customers").then((res) => setCustomers(res.data.customers));
+      client.get("/vendors").then((res) => setVendors(res.data.vendors));
       return;
     }
     setLoading(true);
-    client.get(`/invoices/${id}`).then((res) => {
-      const inv = res.data.invoice;
-      setInvoice(inv);
-      setLines(inv.lines.length ? inv.lines : [BLANK_LINE()]);
-      setMemo(inv.memo || "");
-      setTaxRateId(inv.tax_rate_id || "");
+    client.get(`/purchase-orders/${id}`).then((res) => {
+      const p = res.data.purchase_order;
+      setPo(p);
+      setExpectedDate(p.expected_date || "");
+      setLines(p.lines.length ? p.lines : [BLANK_LINE()]);
+      setMemo(p.memo || "");
       setLoading(false);
     });
   }, [id, isNew]);
@@ -59,28 +51,25 @@ export default function InvoiceDetail() {
     setLines((ls) => ls.filter((_, i) => i !== idx));
   }
 
-  const selectedRatePct = taxRateId ? parseFloat(taxRates.find((r) => r.id === taxRateId)?.rate || 0) : 0;
   const subtotal = lines.reduce((sum, l) => sum + (parseFloat(l.quantity) || 0) * (parseFloat(l.unit_price) || 0), 0);
-  const taxTotal = subtotal * selectedRatePct;
-  const total = subtotal + taxTotal;
 
   async function handleSave(e) {
     e.preventDefault();
     setError("");
-    if (isNew && !customerId) {
-      setError("Please select a customer");
+    if (isNew && !vendorId) {
+      setError("Please select a vendor");
       return;
     }
     setSaving(true);
     try {
-      const payload = taxRateId ? { lines, memo, tax_rate_id: taxRateId } : { lines, memo, tax_rate: 0 };
+      const payload = { lines, memo, expected_date: expectedDate || null };
       if (isNew) {
-        payload.customer_id = customerId;
-        const res = await client.post("/invoices", payload);
-        navigate(`/invoices/${res.data.invoice.id}`);
+        payload.vendor_id = vendorId;
+        const res = await client.post("/purchase-orders", payload);
+        navigate(`/purchase-orders/${res.data.purchase_order.id}`);
       } else {
-        const res = await client.patch(`/invoices/${id}`, payload);
-        setInvoice(res.data.invoice);
+        const res = await client.patch(`/purchase-orders/${id}`, payload);
+        setPo(res.data.purchase_order);
       }
     } catch (err) {
       setError(err.response?.data?.error || "Save failed");
@@ -89,61 +78,68 @@ export default function InvoiceDetail() {
     }
   }
 
-  async function handleDownloadPdf() {
-    const res = await client.get(`/invoices/${id}/pdf`, { responseType: "blob" });
-    const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-
   async function handleSend() {
-    const res = await client.post(`/invoices/${id}/send`);
-    setInvoice(res.data.invoice);
+    const res = await client.post(`/purchase-orders/${id}/send`);
+    setPo(res.data.purchase_order);
+  }
+  async function handleReceive() {
+    const res = await client.post(`/purchase-orders/${id}/receive`);
+    setPo(res.data.purchase_order);
+  }
+  async function handleCancel() {
+    if (!confirm("Cancel this purchase order?")) return;
+    const res = await client.post(`/purchase-orders/${id}/cancel`);
+    setPo(res.data.purchase_order);
+  }
+  async function handleConvertToBill() {
+    const res = await client.post(`/purchase-orders/${id}/convert-to-bill`);
+    navigate(`/bills/${res.data.bill.id}`);
   }
 
-  async function handleVoid() {
-    if (!confirm("Void this invoice? This cannot be undone.")) return;
-    const res = await client.post(`/invoices/${id}/void`);
-    setInvoice(res.data.invoice);
-  }
+  if (loading || (!isNew && !po)) return <div className="page-loading">Loading...</div>;
 
-  if (loading || (!isNew && !invoice)) return <div className="page-loading">Loading...</div>;
-
-  const editable = isNew || invoice?.status === "draft";
+  const editable = isNew || po?.status === "draft";
 
   return (
     <div>
       <div className="page-header">
-        <h1>{isNew ? "New Invoice" : invoice.invoice_number}</h1>
+        <h1>{isNew ? "New Purchase Order" : po.po_number}</h1>
         <div className="button-row">
-          {!isNew && <button type="button" className="btn-secondary" onClick={handleDownloadPdf}>Download PDF</button>}
-          {!isNew && invoice.status === "draft" && <button className="btn-secondary" onClick={handleSend}>Send Invoice</button>}
-          {!isNew && invoice.status !== "void" && invoice.status !== "paid" && (
-            <button className="btn-danger" onClick={handleVoid}>Void</button>
+          {!isNew && po.status === "draft" && <button className="btn-secondary" onClick={handleSend}>Send to Vendor</button>}
+          {!isNew && po.status === "sent" && <button className="btn-secondary" onClick={handleReceive}>Mark Received</button>}
+          {!isNew && (po.status === "sent" || po.status === "received") && !po.converted_bill_id && (
+            <button className="btn-primary" onClick={handleConvertToBill}>Convert to Bill</button>
           )}
-          {!isNew && invoice.balance_due !== "0.00" && invoice.status !== "void" && (
-            <Link className="btn-primary" to={`/payments/new?customer_id=${invoice.customer_id}&invoice_id=${id}`}>
-              Record Payment
-            </Link>
+          {!isNew && po.status !== "closed" && po.status !== "cancelled" && (
+            <button className="btn-danger" onClick={handleCancel}>Cancel</button>
+          )}
+          {!isNew && po.converted_bill_id && (
+            <Link className="btn-secondary" to={`/bills/${po.converted_bill_id}`}>View Bill</Link>
           )}
         </div>
       </div>
 
       {error && <div className="auth-error">{error}</div>}
 
-      {!isNew && <span className={`badge badge-${invoice.status}`}>{invoice.status}</span>}
+      {!isNew && <span className={`badge badge-${po.status}`}>{po.status}</span>}
 
       <form className="card" onSubmit={handleSave}>
         {isNew && (
           <label>
-            Customer *
-            <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} required>
-              <option value="">Select a customer...</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>{c.display_name}</option>
+            Vendor *
+            <select value={vendorId} onChange={(e) => setVendorId(e.target.value)} required>
+              <option value="">Select a vendor...</option>
+              {vendors.map((v) => (
+                <option key={v.id} value={v.id}>{v.display_name}</option>
               ))}
             </select>
           </label>
         )}
+
+        <label>
+          Expected Delivery Date
+          <input type="date" value={expectedDate} disabled={!editable} onChange={(e) => setExpectedDate(e.target.value)} />
+        </label>
 
         <table className="data-table line-items">
           <thead>
@@ -196,19 +192,7 @@ export default function InvoiceDetail() {
         {editable && <button type="button" className="btn-secondary" onClick={addLine}>Add Line</button>}
 
         <div className="invoice-totals">
-          <label>
-            Tax Rate
-            <select value={taxRateId} disabled={!editable} onChange={(e) => setTaxRateId(e.target.value)} style={{ width: "220px" }}>
-              <option value="">No Tax</option>
-              {taxRates.map((r) => (
-                <option key={r.id} value={r.id}>{r.name} ({(parseFloat(r.rate) * 100).toFixed(2)}%)</option>
-              ))}
-            </select>
-          </label>
-          <div>Subtotal: ${subtotal.toFixed(2)}</div>
-          <div>Tax: ${taxTotal.toFixed(2)}</div>
-          <div className="total-line">Total: ${total.toFixed(2)}</div>
-          {!isNew && <div className="total-line">Balance Due: ${invoice.balance_due}</div>}
+          <div className="total-line">Subtotal: ${subtotal.toFixed(2)}</div>
         </div>
 
         <label>
@@ -218,7 +202,7 @@ export default function InvoiceDetail() {
 
         {editable && (
           <button type="submit" className="btn-primary" disabled={saving}>
-            {saving ? "Saving..." : isNew ? "Create Invoice" : "Save Changes"}
+            {saving ? "Saving..." : isNew ? "Create Purchase Order" : "Save Changes"}
           </button>
         )}
       </form>

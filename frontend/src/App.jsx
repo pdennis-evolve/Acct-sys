@@ -16,7 +16,20 @@ import AccountList from "./pages/Accounts/AccountList";
 import CashAccountList from "./pages/CashAccounts/CashAccountList";
 import Register from "./pages/CashAccounts/Register";
 import CompanySettings from "./pages/Settings/CompanySettings";
+import TaxRates from "./pages/Settings/TaxRates";
 import UserList from "./pages/Users/UserList";
+import VendorList from "./pages/Vendors/VendorList";
+import VendorDetail from "./pages/Vendors/VendorDetail";
+import BillList from "./pages/Bills/BillList";
+import BillDetail from "./pages/Bills/BillDetail";
+import POList from "./pages/PurchaseOrders/POList";
+import PODetail from "./pages/PurchaseOrders/PODetail";
+import VendorPaymentList from "./pages/VendorPayments/VendorPaymentList";
+import VendorPaymentForm from "./pages/VendorPayments/VendorPaymentForm";
+import ProfitLoss from "./pages/Reports/ProfitLoss";
+import IncomeReport from "./pages/Reports/IncomeReport";
+import SalesTax from "./pages/Reports/SalesTax";
+import AgingReceivables from "./pages/Reports/AgingReceivables";
 import SuperAdminLogin from "./pages/SuperAdmin/SuperAdminLogin";
 import TenantList from "./pages/SuperAdmin/TenantList";
 import TenantDetail from "./pages/SuperAdmin/TenantDetail";
@@ -48,7 +61,20 @@ export default function App() {
             <Route path="cash-accounts" element={<CashAccountList />} />
             <Route path="cash-accounts/:id" element={<Register />} />
             <Route path="settings" element={<CompanySettings />} />
+            <Route path="settings/tax-rates" element={<TaxRates />} />
             <Route path="users" element={<UserList />} />
+            <Route path="vendors" element={<VendorList />} />
+            <Route path="vendors/:id" element={<VendorDetail />} />
+            <Route path="bills" element={<BillList />} />
+            <Route path="bills/:id" element={<BillDetail />} />
+            <Route path="purchase-orders" element={<POList />} />
+            <Route path="purchase-orders/:id" element={<PODetail />} />
+            <Route path="vendor-payments" element={<VendorPaymentList />} />
+            <Route path="vendor-payments/new" element={<VendorPaymentForm />} />
+            <Route path="reports/profit-loss" element={<ProfitLoss />} />
+            <Route path="reports/income" element={<IncomeReport />} />
+            <Route path="reports/sales-tax" element={<SalesTax />} />
+            <Route path="reports/aging-receivables" element={<AgingReceivables />} />
           </Route>
 
           <Route

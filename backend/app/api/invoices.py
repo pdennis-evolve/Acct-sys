@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 from flask import Blueprint, request, jsonify, g, Response
 
 from app.extensions import db
-from app.models import Invoice, InvoiceLine, Customer, CompanySettings
+from app.models import Invoice, InvoiceLine, Customer, CompanySettings, TaxRate
 from app.middleware.tenant_scope import tenant_required, scoped_query, stamp_tenant
 from app.utils.decorators import role_required, module_required
 from app.services.audit import log_action
@@ -39,6 +39,28 @@ def _apply_lines(invoice, lines_data):
             account_id=line.get("account_id") or None,
             sort_order=i,
         ))
+
+
+def _resolve_tax(data):
+    """Returns (tax_rate_pct, tax_rate_id). Explicit tax_rate_id wins (looks
+    up the persisted rate); a raw tax_rate falls back to an ad-hoc
+    percentage with no jurisdiction attached; otherwise the tenant's
+    default TaxRate applies; otherwise 0."""
+    tax_rate_id = data.get("tax_rate_id")
+    if tax_rate_id:
+        rate_row = scoped_query(TaxRate).filter_by(id=tax_rate_id).first()
+        if not rate_row:
+            return None, "tax_rate_id not found"
+        return (rate_row.rate, rate_row.id), None
+    if "tax_rate" in data:
+        try:
+            return (Decimal(str(data.get("tax_rate", 0))), None), None
+        except InvalidOperation:
+            return None, "tax_rate must be numeric"
+    default_rate = scoped_query(TaxRate).filter_by(is_default=True).first()
+    if default_rate:
+        return (default_rate.rate, default_rate.id), None
+    return (Decimal("0"), None), None
 
 
 def _next_invoice_number():
@@ -88,6 +110,11 @@ def create_invoice():
     if not customer:
         return jsonify(error="A valid customer_id is required"), 400
 
+    tax_resolved, tax_error = _resolve_tax(data)
+    if tax_error:
+        return jsonify(error=tax_error), 400
+    tax_rate_pct, tax_rate_id = tax_resolved
+
     settings = CompanySettings.query.filter_by(tenant_id=g.tenant_id).first()
     terms_days = settings.default_invoice_terms_days if settings else 30
 
@@ -105,7 +132,7 @@ def create_invoice():
         created_by=g.user_id,
     ))
     _apply_lines(invoice, data.get("lines"))
-    invoice.recalculate_totals(Decimal(str(data.get("tax_rate", 0))))
+    invoice.recalculate_totals(tax_rate_pct, tax_rate_id)
 
     db.session.add(invoice)
     db.session.flush()
@@ -139,7 +166,15 @@ def update_invoice(invoice_id):
         _apply_lines(invoice, data["lines"])
         changes["lines"] = "updated"
 
-    invoice.recalculate_totals(Decimal(str(data.get("tax_rate", 0))))
+    if "tax_rate" in data or "tax_rate_id" in data:
+        tax_resolved, tax_error = _resolve_tax(data)
+        if tax_error:
+            return jsonify(error=tax_error), 400
+        tax_rate_pct, tax_rate_id = tax_resolved
+    else:
+        tax_rate_pct, tax_rate_id = invoice.tax_rate_pct, invoice.tax_rate_id
+
+    invoice.recalculate_totals(tax_rate_pct, tax_rate_id)
     invoice.updated_by = g.user_id
     log_action("invoice", invoice.id, "update", changes)
     db.session.commit()
