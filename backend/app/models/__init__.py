@@ -17,6 +17,9 @@ from app.models.vendor_payment import VendorPayment, VendorPaymentApplication, V
 from app.models.work_order import WorkOrder, WorkOrderLine, WORK_ORDER_STATUSES, WORK_ORDER_LINE_TYPES
 from app.models.vehicle import Vehicle, Driver, VEHICLE_STATUSES, VEHICLE_TYPES, DRIVER_STATUSES
 from app.models.load import Load, LoadCharge, LOAD_STATUSES
+from app.models.shipment import (
+    Shipment, SHIPMENT_REFERENCE_TYPES, SHIPMENT_STATUSES, SHIPMENT_STATUS_SOURCES, CARRIERS,
+)
 from app.models.audit import AuditLog
 
 __all__ = [
@@ -39,5 +42,6 @@ __all__ = [
     "WorkOrder", "WorkOrderLine", "WORK_ORDER_STATUSES", "WORK_ORDER_LINE_TYPES",
     "Vehicle", "Driver", "VEHICLE_STATUSES", "VEHICLE_TYPES", "DRIVER_STATUSES",
     "Load", "LoadCharge", "LOAD_STATUSES",
+    "Shipment", "SHIPMENT_REFERENCE_TYPES", "SHIPMENT_STATUSES", "SHIPMENT_STATUS_SOURCES", "CARRIERS",
     "AuditLog",
 ]

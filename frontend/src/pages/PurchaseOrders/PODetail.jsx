@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
 import client from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
+import ShipmentPanel from "../../components/ShipmentPanel";
 
 const BLANK_LINE = () => ({ description: "", quantity: 1, unit_price: 0, account_id: "", item_id: "" });
 
@@ -260,6 +261,10 @@ export default function PODetail() {
           </button>
         )}
       </form>
+
+      {!isNew && hasModule("order_tracking") && (
+        <ShipmentPanel referenceType="purchase_order" referenceId={id} />
+      )}
     </div>
   );
 }

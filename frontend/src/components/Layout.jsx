@@ -57,6 +57,13 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    heading: "Order Tracking",
+    module: "order_tracking",
+    items: [
+      { to: "/order-tracking", label: "All Shipments" },
+    ],
+  },
+  {
     heading: "Reports",
     module: "ar_ap",
     roles: ["owner_admin", "accountant", "read_only_auditor"],

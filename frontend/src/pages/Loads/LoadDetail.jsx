@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import client from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
+import ShipmentPanel from "../../components/ShipmentPanel";
 
 const BLANK_CHARGE = () => ({ description: "", amount: 0 });
 
@@ -8,6 +10,7 @@ export default function LoadDetail() {
   const { id } = useParams();
   const isNew = id === "new";
   const navigate = useNavigate();
+  const { hasModule } = useAuth();
 
   const [load, setLoad] = useState(null);
   const [customers, setCustomers] = useState([]);
@@ -249,6 +252,10 @@ export default function LoadDetail() {
           </button>
         )}
       </form>
+
+      {!isNew && hasModule("order_tracking") && (
+        <ShipmentPanel referenceType="load" referenceId={id} />
+      )}
     </div>
   );
 }
