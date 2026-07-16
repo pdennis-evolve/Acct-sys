@@ -17,6 +17,9 @@ def register_blueprints(app):
     from app.api.locations import bp as locations_bp
     from app.api.items import bp as items_bp
     from app.api.work_orders import bp as work_orders_bp
+    from app.api.vehicles import bp as vehicles_bp
+    from app.api.drivers import bp as drivers_bp
+    from app.api.loads import bp as loads_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(super_admin_bp, url_prefix="/api/admin")
@@ -36,3 +39,6 @@ def register_blueprints(app):
     app.register_blueprint(locations_bp, url_prefix="/api/locations")
     app.register_blueprint(items_bp, url_prefix="/api/items")
     app.register_blueprint(work_orders_bp, url_prefix="/api/work-orders")
+    app.register_blueprint(vehicles_bp, url_prefix="/api/vehicles")
+    app.register_blueprint(drivers_bp, url_prefix="/api/drivers")
+    app.register_blueprint(loads_bp, url_prefix="/api/loads")

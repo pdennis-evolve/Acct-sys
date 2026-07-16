@@ -48,6 +48,15 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    heading: "Transportation",
+    module: "transportation",
+    items: [
+      { to: "/loads", label: "Loads" },
+      { to: "/drivers", label: "Drivers" },
+      { to: "/vehicles", label: "Vehicles" },
+    ],
+  },
+  {
     heading: "Reports",
     module: "ar_ap",
     roles: ["owner_admin", "accountant", "read_only_auditor"],
