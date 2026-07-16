@@ -21,6 +21,7 @@ from app.models.shipment import (
     Shipment, SHIPMENT_REFERENCE_TYPES, SHIPMENT_STATUSES, SHIPMENT_STATUS_SOURCES, CARRIERS,
 )
 from app.models.contract import Contract, CONTRACT_STATUSES
+from app.models.portal_user import PortalUser
 from app.models.audit import AuditLog
 
 __all__ = [
@@ -45,5 +46,6 @@ __all__ = [
     "Load", "LoadCharge", "LOAD_STATUSES",
     "Shipment", "SHIPMENT_REFERENCE_TYPES", "SHIPMENT_STATUSES", "SHIPMENT_STATUS_SOURCES", "CARRIERS",
     "Contract", "CONTRACT_STATUSES",
+    "PortalUser",
     "AuditLog",
 ]

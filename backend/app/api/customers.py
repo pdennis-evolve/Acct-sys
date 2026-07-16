@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, g
 
 from app.extensions import db
-from app.models import Customer, CustomerContact
+from app.models import Customer, CustomerContact, PortalUser
 from app.middleware.tenant_scope import tenant_required, scoped_query, stamp_tenant
 from app.utils.decorators import role_required, module_required
 from app.services.audit import log_action
@@ -154,3 +154,84 @@ def add_contact(customer_id):
     db.session.add(contact)
     db.session.commit()
     return jsonify(contact=contact.to_dict()), 201
+
+
+@bp.get("/<customer_id>/portal-users")
+@tenant_required
+@module_required("customer_portal")
+@role_required(*WRITE_ROLES)
+def list_portal_users(customer_id):
+    customer = scoped_query(Customer).filter_by(id=customer_id).first()
+    if not customer:
+        return jsonify(error="Customer not found"), 404
+    portal_users = PortalUser.query.filter_by(tenant_id=g.tenant_id, customer_id=customer_id).all()
+    return jsonify(portal_users=[p.to_dict() for p in portal_users])
+
+
+@bp.post("/<customer_id>/portal-users")
+@tenant_required
+@module_required("customer_portal")
+@role_required(*WRITE_ROLES)
+def create_portal_user(customer_id):
+    """Staff-initiated login provisioning for a customer's portal access.
+    The initial password is set here and must be relayed to the customer
+    out of band (email/phone) -- there is no self-service signup."""
+    customer = scoped_query(Customer).filter_by(id=customer_id).first()
+    if not customer:
+        return jsonify(error="Customer not found"), 404
+
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    full_name = (data.get("full_name") or "").strip()
+    password = data.get("password") or ""
+    if not email or not full_name or not password:
+        return jsonify(error="email, full_name, and password are required"), 400
+    if len(password) < 8:
+        return jsonify(error="password must be at least 8 characters"), 400
+
+    existing = PortalUser.query.filter_by(tenant_id=g.tenant_id, email=email).first()
+    if existing:
+        return jsonify(error="A portal login with this email already exists"), 409
+
+    portal_user = PortalUser(
+        tenant_id=g.tenant_id,
+        customer_id=customer.id,
+        email=email,
+        full_name=full_name,
+    )
+    portal_user.set_password(password)
+    db.session.add(portal_user)
+    db.session.flush()
+    log_action("portal_user", portal_user.id, "create", {"email": email, "customer_id": customer_id})
+    db.session.commit()
+    return jsonify(portal_user=portal_user.to_dict()), 201
+
+
+@bp.patch("/<customer_id>/portal-users/<portal_user_id>")
+@tenant_required
+@module_required("customer_portal")
+@role_required(*WRITE_ROLES)
+def update_portal_user(customer_id, portal_user_id):
+    portal_user = PortalUser.query.filter_by(
+        id=portal_user_id, tenant_id=g.tenant_id, customer_id=customer_id
+    ).first()
+    if not portal_user:
+        return jsonify(error="Portal login not found"), 404
+
+    data = request.get_json(silent=True) or {}
+    changes = {}
+    if "full_name" in data:
+        portal_user.full_name = data["full_name"]
+        changes["full_name"] = data["full_name"]
+    if "is_active" in data:
+        portal_user.is_active = bool(data["is_active"])
+        changes["is_active"] = portal_user.is_active
+    if data.get("password"):
+        if len(data["password"]) < 8:
+            return jsonify(error="password must be at least 8 characters"), 400
+        portal_user.set_password(data["password"])
+        changes["password"] = "reset"
+
+    log_action("portal_user", portal_user.id, "update", changes)
+    db.session.commit()
+    return jsonify(portal_user=portal_user.to_dict())

@@ -21,6 +21,10 @@ export default function CustomerDetail() {
   const [form, setForm] = useState(BLANK);
   const [invoices, setInvoices] = useState([]);
   const [contracts, setContracts] = useState([]);
+  const [portalUsers, setPortalUsers] = useState([]);
+  const [showNewPortalUser, setShowNewPortalUser] = useState(false);
+  const [newPortalUser, setNewPortalUser] = useState({ email: "", full_name: "", password: "" });
+  const [portalError, setPortalError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -50,7 +54,32 @@ export default function CustomerDetail() {
     if (hasModule("contract_manager")) {
       client.get("/contracts", { params: { customer_id: id } }).then((res) => setContracts(res.data.contracts));
     }
+    if (hasModule("customer_portal")) {
+      loadPortalUsers();
+    }
   }, [id, isNew]);
+
+  function loadPortalUsers() {
+    client.get(`/customers/${id}/portal-users`).then((res) => setPortalUsers(res.data.portal_users));
+  }
+
+  async function handleCreatePortalUser(e) {
+    e.preventDefault();
+    setPortalError("");
+    try {
+      await client.post(`/customers/${id}/portal-users`, newPortalUser);
+      setNewPortalUser({ email: "", full_name: "", password: "" });
+      setShowNewPortalUser(false);
+      loadPortalUsers();
+    } catch (err) {
+      setPortalError(err.response?.data?.error || "Could not create portal login");
+    }
+  }
+
+  async function togglePortalUserActive(pu) {
+    await client.patch(`/customers/${id}/portal-users/${pu.id}`, { is_active: !pu.is_active });
+    loadPortalUsers();
+  }
 
   function updateField(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -190,6 +219,74 @@ export default function CustomerDetail() {
                 </tr>
               ))}
               {contracts.length === 0 && <tr><td colSpan={5} className="empty-row">No contracts yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {!isNew && hasModule("customer_portal") && (
+        <div className="card">
+          <div className="page-header">
+            <h2>Portal Access</h2>
+            <button type="button" className="btn-secondary" onClick={() => setShowNewPortalUser((s) => !s)}>
+              {showNewPortalUser ? "Cancel" : "New Portal Login"}
+            </button>
+          </div>
+
+          {portalError && <div className="auth-error">{portalError}</div>}
+
+          {showNewPortalUser && (
+            <form className="form-grid" onSubmit={handleCreatePortalUser} style={{ marginBottom: "1rem" }}>
+              <label>
+                Full Name
+                <input
+                  value={newPortalUser.full_name}
+                  onChange={(e) => setNewPortalUser((f) => ({ ...f, full_name: e.target.value }))}
+                  required
+                />
+              </label>
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={newPortalUser.email}
+                  onChange={(e) => setNewPortalUser((f) => ({ ...f, email: e.target.value }))}
+                  required
+                />
+              </label>
+              <label>
+                Initial Password
+                <input
+                  type="password"
+                  value={newPortalUser.password}
+                  onChange={(e) => setNewPortalUser((f) => ({ ...f, password: e.target.value }))}
+                  minLength={8}
+                  required
+                />
+              </label>
+              <button type="submit" className="btn-primary">Create Login</button>
+            </form>
+          )}
+
+          <table className="data-table">
+            <thead>
+              <tr><th>Name</th><th>Email</th><th>Status</th><th>Last Login</th><th></th></tr>
+            </thead>
+            <tbody>
+              {portalUsers.map((pu) => (
+                <tr key={pu.id}>
+                  <td>{pu.full_name}</td>
+                  <td>{pu.email}</td>
+                  <td><span className={`badge ${pu.is_active ? "badge-paid" : "badge-void"}`}>{pu.is_active ? "Active" : "Deactivated"}</span></td>
+                  <td>{pu.last_login_at ? new Date(pu.last_login_at).toLocaleString() : "Never"}</td>
+                  <td>
+                    <button type="button" className="btn-link" onClick={() => togglePortalUserActive(pu)}>
+                      {pu.is_active ? "Deactivate" : "Reactivate"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {portalUsers.length === 0 && <tr><td colSpan={5} className="empty-row">No portal logins yet.</td></tr>}
             </tbody>
           </table>
         </div>

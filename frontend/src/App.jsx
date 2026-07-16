@@ -1,8 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { PortalAuthProvider } from "./context/PortalAuthContext";
 import { ProtectedRoute, SuperAdminRoute } from "./components/ProtectedRoute";
+import { PortalProtectedRoute } from "./components/PortalProtectedRoute";
 import Layout from "./components/Layout";
 import SuperAdminLayout from "./components/SuperAdminLayout";
+import PortalLayout from "./components/PortalLayout";
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -45,14 +48,22 @@ import ContractDetail from "./pages/Contracts/ContractDetail";
 import SuperAdminLogin from "./pages/SuperAdmin/SuperAdminLogin";
 import TenantList from "./pages/SuperAdmin/TenantList";
 import TenantDetail from "./pages/SuperAdmin/TenantDetail";
+import PortalLogin from "./pages/Portal/PortalLogin";
+import PortalInvoiceList from "./pages/Portal/PortalInvoiceList";
+import PortalInvoiceDetail from "./pages/Portal/PortalInvoiceDetail";
+import PortalWorkOrderList from "./pages/Portal/PortalWorkOrderList";
+import PortalWorkOrderDetail from "./pages/Portal/PortalWorkOrderDetail";
+import PortalTracking from "./pages/Portal/PortalTracking";
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+      <PortalAuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/admin/login" element={<SuperAdminLogin />} />
+          <Route path="/portal/login" element={<PortalLogin />} />
 
           <Route
             path="/"
@@ -113,8 +124,24 @@ export default function App() {
             <Route path="tenants/:id" element={<TenantDetail />} />
           </Route>
 
+          <Route
+            path="/portal"
+            element={
+              <PortalProtectedRoute>
+                <PortalLayout />
+              </PortalProtectedRoute>
+            }
+          >
+            <Route index element={<PortalInvoiceList />} />
+            <Route path="invoices/:id" element={<PortalInvoiceDetail />} />
+            <Route path="work-orders" element={<PortalWorkOrderList />} />
+            <Route path="work-orders/:id" element={<PortalWorkOrderDetail />} />
+            <Route path="tracking" element={<PortalTracking />} />
+          </Route>
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+      </PortalAuthProvider>
       </AuthProvider>
     </BrowserRouter>
   );

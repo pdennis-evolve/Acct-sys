@@ -22,6 +22,8 @@ def register_blueprints(app):
     from app.api.loads import bp as loads_bp
     from app.api.shipments import bp as shipments_bp
     from app.api.contracts import bp as contracts_bp
+    from app.api.portal_auth import bp as portal_auth_bp
+    from app.api.portal import bp as portal_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(super_admin_bp, url_prefix="/api/admin")
@@ -46,3 +48,5 @@ def register_blueprints(app):
     app.register_blueprint(loads_bp, url_prefix="/api/loads")
     app.register_blueprint(shipments_bp, url_prefix="/api/shipments")
     app.register_blueprint(contracts_bp, url_prefix="/api/contracts")
+    app.register_blueprint(portal_auth_bp, url_prefix="/api/portal/auth")
+    app.register_blueprint(portal_bp, url_prefix="/api/portal")
