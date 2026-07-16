@@ -14,6 +14,7 @@ from app.models.vendor import Vendor, VendorContact
 from app.models.bill import Bill, BillLine, BILL_STATUSES
 from app.models.purchase_order import PurchaseOrder, PurchaseOrderLine, PO_STATUSES
 from app.models.vendor_payment import VendorPayment, VendorPaymentApplication, VENDOR_PAYMENT_METHODS
+from app.models.work_order import WorkOrder, WorkOrderLine, WORK_ORDER_STATUSES, WORK_ORDER_LINE_TYPES
 from app.models.audit import AuditLog
 
 __all__ = [
@@ -33,5 +34,6 @@ __all__ = [
     "Bill", "BillLine", "BILL_STATUSES",
     "PurchaseOrder", "PurchaseOrderLine", "PO_STATUSES",
     "VendorPayment", "VendorPaymentApplication", "VENDOR_PAYMENT_METHODS",
+    "WorkOrder", "WorkOrderLine", "WORK_ORDER_STATUSES", "WORK_ORDER_LINE_TYPES",
     "AuditLog",
 ]

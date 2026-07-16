@@ -41,6 +41,13 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    heading: "Field Service",
+    module: "work_orders",
+    items: [
+      { to: "/work-orders", label: "Work Orders" },
+    ],
+  },
+  {
     heading: "Reports",
     module: "ar_ap",
     roles: ["owner_admin", "accountant", "read_only_auditor"],

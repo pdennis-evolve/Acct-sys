@@ -33,6 +33,8 @@ import AgingReceivables from "./pages/Reports/AgingReceivables";
 import ItemList from "./pages/Items/ItemList";
 import ItemDetail from "./pages/Items/ItemDetail";
 import LocationList from "./pages/Locations/LocationList";
+import WorkOrderList from "./pages/WorkOrders/WorkOrderList";
+import WorkOrderDetail from "./pages/WorkOrders/WorkOrderDetail";
 import SuperAdminLogin from "./pages/SuperAdmin/SuperAdminLogin";
 import TenantList from "./pages/SuperAdmin/TenantList";
 import TenantDetail from "./pages/SuperAdmin/TenantDetail";
@@ -81,6 +83,8 @@ export default function App() {
             <Route path="items" element={<ItemList />} />
             <Route path="items/:id" element={<ItemDetail />} />
             <Route path="locations" element={<LocationList />} />
+            <Route path="work-orders" element={<WorkOrderList />} />
+            <Route path="work-orders/:id" element={<WorkOrderDetail />} />
           </Route>
 
           <Route
