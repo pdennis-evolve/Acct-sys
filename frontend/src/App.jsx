@@ -40,6 +40,8 @@ import DriverList from "./pages/Drivers/DriverList";
 import LoadList from "./pages/Loads/LoadList";
 import LoadDetail from "./pages/Loads/LoadDetail";
 import TrackingList from "./pages/OrderTracking/TrackingList";
+import ContractList from "./pages/Contracts/ContractList";
+import ContractDetail from "./pages/Contracts/ContractDetail";
 import SuperAdminLogin from "./pages/SuperAdmin/SuperAdminLogin";
 import TenantList from "./pages/SuperAdmin/TenantList";
 import TenantDetail from "./pages/SuperAdmin/TenantDetail";
@@ -95,6 +97,8 @@ export default function App() {
             <Route path="loads" element={<LoadList />} />
             <Route path="loads/:id" element={<LoadDetail />} />
             <Route path="order-tracking" element={<TrackingList />} />
+            <Route path="contracts" element={<ContractList />} />
+            <Route path="contracts/:id" element={<ContractDetail />} />
           </Route>
 
           <Route

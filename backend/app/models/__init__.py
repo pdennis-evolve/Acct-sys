@@ -20,6 +20,7 @@ from app.models.load import Load, LoadCharge, LOAD_STATUSES
 from app.models.shipment import (
     Shipment, SHIPMENT_REFERENCE_TYPES, SHIPMENT_STATUSES, SHIPMENT_STATUS_SOURCES, CARRIERS,
 )
+from app.models.contract import Contract, CONTRACT_STATUSES
 from app.models.audit import AuditLog
 
 __all__ = [
@@ -43,5 +44,6 @@ __all__ = [
     "Vehicle", "Driver", "VEHICLE_STATUSES", "VEHICLE_TYPES", "DRIVER_STATUSES",
     "Load", "LoadCharge", "LOAD_STATUSES",
     "Shipment", "SHIPMENT_REFERENCE_TYPES", "SHIPMENT_STATUSES", "SHIPMENT_STATUS_SOURCES", "CARRIERS",
+    "Contract", "CONTRACT_STATUSES",
     "AuditLog",
 ]

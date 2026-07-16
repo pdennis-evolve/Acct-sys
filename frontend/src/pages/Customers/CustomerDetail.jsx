@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import client from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
 
 const BLANK = {
   display_name: "",
@@ -15,9 +16,11 @@ export default function CustomerDetail() {
   const { id } = useParams();
   const isNew = id === "new";
   const navigate = useNavigate();
+  const { hasModule } = useAuth();
 
   const [form, setForm] = useState(BLANK);
   const [invoices, setInvoices] = useState([]);
+  const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -26,6 +29,7 @@ export default function CustomerDetail() {
     if (isNew) {
       setForm(BLANK);
       setInvoices([]);
+      setContracts([]);
       setLoading(false);
       return;
     }
@@ -43,6 +47,9 @@ export default function CustomerDetail() {
       setLoading(false);
     });
     client.get("/invoices", { params: { customer_id: id } }).then((res) => setInvoices(res.data.invoices));
+    if (hasModule("contract_manager")) {
+      client.get("/contracts", { params: { customer_id: id } }).then((res) => setContracts(res.data.contracts));
+    }
   }, [id, isNew]);
 
   function updateField(field, value) {
@@ -154,6 +161,35 @@ export default function CustomerDetail() {
                 </tr>
               ))}
               {invoices.length === 0 && <tr><td colSpan={5} className="empty-row">No invoices yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {!isNew && hasModule("contract_manager") && (
+        <div className="card">
+          <div className="page-header">
+            <h2>Contracts</h2>
+            <Link to={`/contracts/new?customer_id=${id}`} className="btn-secondary">New Contract</Link>
+          </div>
+          <table className="data-table">
+            <thead>
+              <tr><th>Title</th><th>Status</th><th>Start</th><th>End</th><th>Renewal</th></tr>
+            </thead>
+            <tbody>
+              {contracts.map((c) => (
+                <tr key={c.id}>
+                  <td><Link to={`/contracts/${c.id}`}>{c.title}</Link></td>
+                  <td>
+                    <span className={`badge badge-${c.status}`}>{c.status}</span>
+                    {c.is_expiring_soon && <span className="badge badge-sent" style={{ marginLeft: "0.3rem" }}>Expiring Soon</span>}
+                  </td>
+                  <td>{c.start_date || "-"}</td>
+                  <td>{c.end_date || "-"}</td>
+                  <td>{c.renewal_date || "-"}</td>
+                </tr>
+              ))}
+              {contracts.length === 0 && <tr><td colSpan={5} className="empty-row">No contracts yet.</td></tr>}
             </tbody>
           </table>
         </div>

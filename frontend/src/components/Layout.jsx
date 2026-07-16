@@ -64,6 +64,13 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    heading: "Contract Manager",
+    module: "contract_manager",
+    items: [
+      { to: "/contracts", label: "Contracts" },
+    ],
+  },
+  {
     heading: "Reports",
     module: "ar_ap",
     roles: ["owner_admin", "accountant", "read_only_auditor"],
