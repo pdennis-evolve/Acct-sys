@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, current_app
 
 from app.models import Invoice, WorkOrder, Load, Shipment
 from app.middleware.tenant_scope import portal_required, portal_scoped_query
@@ -49,19 +49,33 @@ def invoice_pdf(invoice_id):
 @portal_required
 def pay_invoice(invoice_id):
     """Honest stub: no Authorize.net (or any other gateway) credentials
-    exist for any tenant in this environment. This must never fabricate a
-    successful charge or create a Payment record -- it reports plainly
-    that online payment isn't wired up yet, same pattern as the Phase 6
-    carrier-poll and Phase 7 S3-storage stubs."""
+    exist in this environment (see app/api/webhooks.py). This must never
+    fabricate a successful charge or create a Payment record -- it
+    reports plainly that online payment isn't wired up yet, same pattern
+    as the Phase 6 carrier-poll and Phase 7 S3-storage stubs. Once a
+    merchant account is configured, this is where an Accept.js payment
+    nonce would be exchanged for a real transaction, with the Authorize.net
+    webhook (app/api/webhooks.py) reconciling the resulting Payment record
+    asynchronously."""
     invoice = portal_scoped_query(Invoice).filter_by(id=invoice_id).filter(Invoice.status != "draft").first()
     if not invoice:
         return jsonify(error="Invoice not found"), 404
     if invoice.balance_due <= 0:
         return jsonify(error="This invoice has no balance due"), 400
 
+    if not current_app.config.get("AUTHORIZE_NET_API_LOGIN_ID"):
+        return jsonify(
+            error="Online payment isn't connected yet for this account. "
+                  "A payment gateway (Authorize.net) has not been configured for this tenant. "
+                  "Please contact us directly to pay this invoice.",
+            payment_processed=False,
+        ), 501
+
+    # Configured-but-unbuilt path: real credentials would need the
+    # Accept.js checkout UI wired up client-side, which can't be
+    # meaningfully built or tested without a live merchant account.
     return jsonify(
-        error="Online payment isn't connected yet for this account. "
-              "A payment gateway (e.g. Authorize.net) has not been configured for this tenant. "
+        error="Online payment is configured but the checkout flow is not yet available. "
               "Please contact us directly to pay this invoice.",
         payment_processed=False,
     ), 501

@@ -3,7 +3,10 @@ import { useAuth } from "../context/AuthContext";
 
 const NAV_SECTIONS = [
   {
-    items: [{ to: "/", label: "Dashboard", exact: true }],
+    items: [
+      { to: "/", label: "Dashboard", exact: true },
+      { to: "/settings/integrations", label: "Integrations" },
+    ],
   },
   {
     heading: "Sales",

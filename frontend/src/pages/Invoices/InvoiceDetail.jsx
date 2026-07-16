@@ -25,6 +25,8 @@ export default function InvoiceDetail() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [emailing, setEmailing] = useState(false);
+  const [emailMessage, setEmailMessage] = useState("");
 
   useEffect(() => {
     client.get("/accounts").then((res) => setAccounts(res.data.accounts.filter((a) => a.type === "income")));
@@ -121,6 +123,19 @@ export default function InvoiceDetail() {
     setInvoice(res.data.invoice);
   }
 
+  async function handleEmailInvoice() {
+    setEmailing(true);
+    setEmailMessage("");
+    try {
+      const res = await client.post(`/invoices/${id}/email`);
+      setEmailMessage(`Sent to ${res.data.to} via ${res.data.via === "microsoft" ? "Microsoft 365" : "Google"}.`);
+    } catch (err) {
+      setEmailMessage(err.response?.data?.error || "Could not send the email.");
+    } finally {
+      setEmailing(false);
+    }
+  }
+
   async function handleVoid() {
     if (!confirm("Void this invoice? This cannot be undone.")) return;
     const res = await client.post(`/invoices/${id}/void`);
@@ -137,6 +152,11 @@ export default function InvoiceDetail() {
         <h1>{isNew ? "New Invoice" : invoice.invoice_number}</h1>
         <div className="button-row">
           {!isNew && <button type="button" className="btn-secondary" onClick={handleDownloadPdf}>Download PDF</button>}
+          {!isNew && invoice.status !== "draft" && (
+            <button type="button" className="btn-secondary" onClick={handleEmailInvoice} disabled={emailing}>
+              {emailing ? "Sending..." : "Email Invoice"}
+            </button>
+          )}
           {!isNew && invoice.status === "draft" && <button className="btn-secondary" onClick={handleSend}>Send Invoice</button>}
           {!isNew && invoice.status !== "void" && invoice.status !== "paid" && (
             <button className="btn-danger" onClick={handleVoid}>Void</button>
@@ -150,6 +170,7 @@ export default function InvoiceDetail() {
       </div>
 
       {error && <div className="auth-error">{error}</div>}
+      {emailMessage && <div className={emailMessage.startsWith("Sent") ? "auth-success" : "auth-error"}>{emailMessage}</div>}
 
       {!isNew && <span className={`badge badge-${invoice.status}`}>{invoice.status}</span>}
 

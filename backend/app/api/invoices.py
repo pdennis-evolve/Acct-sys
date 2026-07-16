@@ -4,12 +4,13 @@ from decimal import Decimal, InvalidOperation
 from flask import Blueprint, request, jsonify, g, Response
 
 from app.extensions import db
-from app.models import Invoice, InvoiceLine, Customer, CompanySettings, TaxRate, Item
+from app.models import Invoice, InvoiceLine, Customer, CompanySettings, TaxRate, Item, EmailConnection
 from app.middleware.tenant_scope import tenant_required, scoped_query, stamp_tenant
 from app.utils.decorators import role_required, module_required
 from app.services.audit import log_action
 from app.services.pdf import render_invoice_pdf
 from app.services.inventory import record_movement, resolve_location
+from app.services import email_oauth
 
 bp = Blueprint("invoices", __name__)
 
@@ -274,3 +275,53 @@ def invoice_pdf(invoice_id):
         mimetype="application/pdf",
         headers={"Content-Disposition": f"inline; filename={invoice.invoice_number}.pdf"},
     )
+
+
+@bp.post("/<invoice_id>/email")
+@tenant_required
+@module_required("ar_ap")
+@role_required(*WRITE_ROLES)
+def email_invoice(invoice_id):
+    """Sends the invoice PDF as the logged-in user's own connected O365 or
+    Gmail account (Phase 9) -- never a shared SMTP relay. Requires that
+    user to have connected a provider under Settings > Integrations;
+    otherwise this reports that plainly rather than silently no-op'ing
+    or pretending to have sent anything."""
+    invoice = scoped_query(Invoice).filter_by(id=invoice_id).first()
+    if not invoice:
+        return jsonify(error="Invoice not found"), 404
+    if not invoice.customer or not invoice.customer.email:
+        return jsonify(error="This customer has no email address on file"), 400
+
+    connection = EmailConnection.query.filter_by(tenant_id=g.tenant_id, user_id=g.user_id).first()
+    if not connection:
+        return jsonify(
+            error="Connect your Microsoft 365 or Google account in Settings > Integrations "
+                  "to send invoices by email."
+        ), 501
+
+    settings = CompanySettings.query.filter_by(tenant_id=g.tenant_id).first()
+    pdf_bytes = render_invoice_pdf(invoice, settings)
+    company_name = settings.company_name if settings else g.tenant.name
+
+    try:
+        email_oauth.send_mail(
+            connection,
+            to_email=invoice.customer.email,
+            subject=f"Invoice {invoice.invoice_number} from {company_name}",
+            html_body=f"<p>Hi {invoice.customer.display_name},</p>"
+                      f"<p>Please find attached invoice {invoice.invoice_number} for "
+                      f"${invoice.total}, due {invoice.due_date.isoformat() if invoice.due_date else ''}.</p>"
+                      f"<p>{company_name}</p>",
+            attachment_bytes=pdf_bytes,
+            attachment_filename=f"{invoice.invoice_number}.pdf",
+        )
+    except email_oauth.IntegrationNotConfigured as exc:
+        return jsonify(error=str(exc)), 501
+    except Exception:
+        db.session.rollback()
+        return jsonify(error="Could not send the email through the connected account. Please try again or reconnect it in Settings > Integrations."), 502
+
+    log_action("invoice", invoice.id, "email", {"to": invoice.customer.email, "via": connection.provider})
+    db.session.commit()
+    return jsonify(status="sent", to=invoice.customer.email, via=connection.provider)

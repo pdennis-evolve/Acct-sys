@@ -20,6 +20,7 @@ import CashAccountList from "./pages/CashAccounts/CashAccountList";
 import Register from "./pages/CashAccounts/Register";
 import CompanySettings from "./pages/Settings/CompanySettings";
 import TaxRates from "./pages/Settings/TaxRates";
+import Integrations from "./pages/Settings/Integrations";
 import UserList from "./pages/Users/UserList";
 import VendorList from "./pages/Vendors/VendorList";
 import VendorDetail from "./pages/Vendors/VendorDetail";
@@ -85,6 +86,7 @@ export default function App() {
             <Route path="cash-accounts/:id" element={<Register />} />
             <Route path="settings" element={<CompanySettings />} />
             <Route path="settings/tax-rates" element={<TaxRates />} />
+            <Route path="settings/integrations" element={<Integrations />} />
             <Route path="users" element={<UserList />} />
             <Route path="vendors" element={<VendorList />} />
             <Route path="vendors/:id" element={<VendorDetail />} />

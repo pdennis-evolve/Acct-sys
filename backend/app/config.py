@@ -23,6 +23,25 @@ class Config:
     SUPERADMIN_BOOTSTRAP_EMAIL = os.environ.get("SUPERADMIN_BOOTSTRAP_EMAIL")
     SUPERADMIN_BOOTSTRAP_PASSWORD = os.environ.get("SUPERADMIN_BOOTSTRAP_PASSWORD")
 
+    # Base URL this app is served at, used to build OAuth redirect URIs.
+    APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://localhost:5173")
+    API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:5000")
+
+    # Phase 9 integrations -- all optional. None of these are set in this
+    # dev sandbox; every integration must check *_configured() and report
+    # plainly rather than fabricate a connection/charge when they're unset.
+    MICROSOFT_CLIENT_ID = os.environ.get("MICROSOFT_CLIENT_ID")
+    MICROSOFT_CLIENT_SECRET = os.environ.get("MICROSOFT_CLIENT_SECRET")
+    MICROSOFT_TENANT = os.environ.get("MICROSOFT_TENANT", "common")
+
+    GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+    GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
+
+    AUTHORIZE_NET_API_LOGIN_ID = os.environ.get("AUTHORIZE_NET_API_LOGIN_ID")
+    AUTHORIZE_NET_TRANSACTION_KEY = os.environ.get("AUTHORIZE_NET_TRANSACTION_KEY")
+    AUTHORIZE_NET_PUBLIC_CLIENT_KEY = os.environ.get("AUTHORIZE_NET_PUBLIC_CLIENT_KEY")
+    AUTHORIZE_NET_SIGNATURE_KEY = os.environ.get("AUTHORIZE_NET_SIGNATURE_KEY")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
