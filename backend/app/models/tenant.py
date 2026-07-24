@@ -15,6 +15,7 @@ ALL_MODULES = [
     "order_tracking",
     "contract_manager",
     "customer_portal",
+    "project_manager",
 ]
 
 DEFAULT_MODULES = {m: (m == "ar_ap") for m in ALL_MODULES}

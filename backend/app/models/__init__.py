@@ -21,6 +21,8 @@ from app.models.shipment import (
     Shipment, SHIPMENT_REFERENCE_TYPES, SHIPMENT_STATUSES, SHIPMENT_STATUS_SOURCES, CARRIERS,
 )
 from app.models.contract import Contract, CONTRACT_STATUSES
+from app.models.project import Project, ProjectTask, PROJECT_STATUSES, PROJECT_TASK_STATUSES
+from app.models.time_entry import TimeEntry
 from app.models.portal_user import PortalUser
 from app.models.email_connection import EmailConnection, EMAIL_PROVIDERS
 from app.models.audit import AuditLog
@@ -47,6 +49,8 @@ __all__ = [
     "Load", "LoadCharge", "LOAD_STATUSES",
     "Shipment", "SHIPMENT_REFERENCE_TYPES", "SHIPMENT_STATUSES", "SHIPMENT_STATUS_SOURCES", "CARRIERS",
     "Contract", "CONTRACT_STATUSES",
+    "Project", "ProjectTask", "PROJECT_STATUSES", "PROJECT_TASK_STATUSES",
+    "TimeEntry",
     "PortalUser",
     "EmailConnection", "EMAIL_PROVIDERS",
     "AuditLog",

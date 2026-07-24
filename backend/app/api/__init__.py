@@ -26,6 +26,7 @@ def register_blueprints(app):
     from app.api.portal import bp as portal_bp
     from app.api.integrations import bp as integrations_bp
     from app.api.webhooks import bp as webhooks_bp
+    from app.api.projects import bp as projects_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(super_admin_bp, url_prefix="/api/admin")
@@ -54,3 +55,4 @@ def register_blueprints(app):
     app.register_blueprint(portal_bp, url_prefix="/api/portal")
     app.register_blueprint(integrations_bp, url_prefix="/api/settings/integrations")
     app.register_blueprint(webhooks_bp, url_prefix="/api/webhooks")
+    app.register_blueprint(projects_bp, url_prefix="/api/projects")

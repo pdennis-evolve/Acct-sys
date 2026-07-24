@@ -46,6 +46,8 @@ import LoadDetail from "./pages/Loads/LoadDetail";
 import TrackingList from "./pages/OrderTracking/TrackingList";
 import ContractList from "./pages/Contracts/ContractList";
 import ContractDetail from "./pages/Contracts/ContractDetail";
+import ProjectList from "./pages/Projects/ProjectList";
+import ProjectDetail from "./pages/Projects/ProjectDetail";
 import SuperAdminLogin from "./pages/SuperAdmin/SuperAdminLogin";
 import TenantList from "./pages/SuperAdmin/TenantList";
 import TenantDetail from "./pages/SuperAdmin/TenantDetail";
@@ -112,6 +114,8 @@ export default function App() {
             <Route path="order-tracking" element={<TrackingList />} />
             <Route path="contracts" element={<ContractList />} />
             <Route path="contracts/:id" element={<ContractDetail />} />
+            <Route path="projects" element={<ProjectList />} />
+            <Route path="projects/:id" element={<ProjectDetail />} />
           </Route>
 
           <Route

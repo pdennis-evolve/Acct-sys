@@ -327,9 +327,10 @@ button { cursor: pointer; font-family: inherit; }
 .badge-draft { background: #eef0f4; color: var(--color-text-muted); }
 .badge-sent, .badge-partial, .badge-pending_approval, .badge-received,
 .badge-dispatched, .badge-in_transit, .badge-out_for_delivery, .badge-in_progress { background: #fff6e0; color: var(--color-warning); }
-.badge-approved, .badge-closed, .badge-delivered, .badge-invoiced, .badge-scheduled { background: #e8f7ee; color: var(--color-success); }
-.badge-cancelled, .badge-exception { background: #fdecec; color: var(--color-danger); }
-.badge-pending, .badge-unknown, .badge-completed { background: #eef0f4; color: var(--color-text-muted); }
+.badge-approved, .badge-closed, .badge-delivered, .badge-invoiced, .badge-scheduled, .badge-done { background: #e8f7ee; color: var(--color-success); }
+.badge-cancelled, .badge-exception, .badge-blocked { background: #fdecec; color: var(--color-danger); }
+.badge-pending, .badge-unknown, .badge-completed, .badge-planning, .badge-todo { background: #eef0f4; color: var(--color-text-muted); }
+.badge-on_hold { background: #fff6e0; color: var(--color-warning); }
 
 /* Stats */
 .stat-grid {

@@ -21,14 +21,21 @@ export default function BillDetail() {
   const [lines, setLines] = useState([BLANK_LINE()]);
   const [taxRate, setTaxRate] = useState(0);
   const [memo, setMemo] = useState("");
+  const [projects, setProjects] = useState([]);
+  const [projectId, setProjectId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const projectManagerEnabled = hasModule("project_manager");
 
   useEffect(() => {
     client.get("/accounts").then((res) => setAccounts(res.data.accounts.filter((a) => a.type === "expense")));
     if (hasModule("inventory")) {
       client.get("/items").then((res) => setItems(res.data.items.filter((i) => i.is_active)));
+    }
+    if (projectManagerEnabled) {
+      client.get("/projects").then((res) => setProjects(res.data.projects));
     }
 
     if (isNew) {
@@ -44,6 +51,7 @@ export default function BillDetail() {
       setBillNumber(b.bill_number || "");
       setLines(b.lines.length ? b.lines : [BLANK_LINE()]);
       setMemo(b.memo || "");
+      setProjectId(b.project_id || "");
       setLoading(false);
     });
   }, [id, isNew]);
@@ -86,6 +94,7 @@ export default function BillDetail() {
     setSaving(true);
     try {
       const payload = { lines, memo, tax_rate: taxRate, bill_number: billNumber };
+      if (projectManagerEnabled) payload.project_id = projectId || null;
       if (isNew) {
         payload.vendor_id = vendorId;
         const res = await client.post("/bills", payload);
@@ -162,6 +171,16 @@ export default function BillDetail() {
           Vendor's Bill/Invoice #
           <input value={billNumber} disabled={!editable} onChange={(e) => setBillNumber(e.target.value)} />
         </label>
+
+        {projectManagerEnabled && (
+          <label>
+            Project (optional)
+            <select value={projectId} disabled={!editable} onChange={(e) => setProjectId(e.target.value)}>
+              <option value="">No project</option>
+              {projects.map((p) => <option key={p.id} value={p.id}>{p.project_number} - {p.name}</option>)}
+            </select>
+          </label>
+        )}
 
         <table className="data-table line-items">
           <thead>

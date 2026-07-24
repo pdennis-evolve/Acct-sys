@@ -37,6 +37,11 @@ class WorkOrder(UUIDPKMixin, TimestampMixin, TenantScopedMixin, SoftDeleteMixin,
     subtotal: Mapped[Decimal] = mapped_column(db.Numeric(14, 2), nullable=False, default=0)
     converted_invoice_id: Mapped[str | None] = mapped_column(db.ForeignKey("invoices.id"), nullable=True)
 
+    # Optional tag linking this work order to a Project as its execution
+    # unit -- labor/parts already tracked here roll into the project's
+    # actual-cost total rather than being re-entered (see app/services/projects.py).
+    project_id: Mapped[str | None] = mapped_column(db.ForeignKey("projects.id"), nullable=True, index=True)
+
     customer = relationship("Customer", lazy="joined")
     technician = relationship("User", lazy="joined", foreign_keys=[assigned_to])
     lines = relationship(
@@ -63,6 +68,7 @@ class WorkOrder(UUIDPKMixin, TimestampMixin, TenantScopedMixin, SoftDeleteMixin,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "subtotal": str(self.subtotal),
             "converted_invoice_id": self.converted_invoice_id,
+            "project_id": self.project_id,
         }
         if include_lines:
             d["lines"] = [l.to_dict() for l in self.lines]

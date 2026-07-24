@@ -10,6 +10,7 @@ const MODULES = [
   { key: "order_tracking", label: "Order Tracking" },
   { key: "contract_manager", label: "Contract Manager" },
   { key: "customer_portal", label: "Customer Portal" },
+  { key: "project_manager", label: "Project Manager" },
 ];
 
 const LICENSE_STATUSES = ["trial", "active", "grace_period", "locked", "canceled"];

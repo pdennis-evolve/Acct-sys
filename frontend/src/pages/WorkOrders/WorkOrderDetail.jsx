@@ -23,17 +23,23 @@ export default function WorkOrderDetail() {
   const [problemDescription, setProblemDescription] = useState("");
   const [memo, setMemo] = useState("");
   const [lines, setLines] = useState([BLANK_LINE()]);
+  const [projects, setProjects] = useState([]);
+  const [projectId, setProjectId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const isDispatchRole = hasRole("owner_admin", "accountant", "dispatcher");
   const inventoryEnabled = hasModule("inventory");
+  const projectManagerEnabled = hasModule("project_manager");
 
   useEffect(() => {
     if (isDispatchRole) {
       client.get("/customers").then((res) => setCustomers(res.data.customers));
       client.get("/work-orders/technicians").then((res) => setTechnicians(res.data.technicians));
+    }
+    if (projectManagerEnabled) {
+      client.get("/projects").then((res) => setProjects(res.data.projects));
     }
     client.get("/accounts").then((res) => setAccounts(res.data.accounts.filter((a) => a.type === "income")));
     if (inventoryEnabled) {
@@ -53,6 +59,7 @@ export default function WorkOrderDetail() {
       setScheduledDate(w.scheduled_date || "");
       setProblemDescription(w.problem_description || "");
       setMemo(w.memo || "");
+      setProjectId(w.project_id || "");
       setLines(w.lines.length ? w.lines : [BLANK_LINE()]);
       setLoading(false);
     });
@@ -88,6 +95,7 @@ export default function WorkOrderDetail() {
     setSaving(true);
     try {
       const payload = { lines, memo, problem_description: problemDescription };
+      if (projectManagerEnabled) payload.project_id = projectId || null;
       if (isNew) {
         payload.customer_id = customerId;
         if (assignedTo) payload.assigned_to = assignedTo;
@@ -202,6 +210,15 @@ export default function WorkOrderDetail() {
               Scheduled Date
               <input type="date" value={scheduledDate} disabled={!editable} onChange={(e) => setScheduledDate(e.target.value)} />
             </label>
+            {projectManagerEnabled && (
+              <label>
+                Project
+                <select value={projectId} disabled={!editable} onChange={(e) => setProjectId(e.target.value)}>
+                  <option value="">No project</option>
+                  {projects.map((p) => <option key={p.id} value={p.id}>{p.project_number} - {p.name}</option>)}
+                </select>
+              </label>
+            )}
           </div>
         )}
 

@@ -78,6 +78,9 @@ def list_work_orders():
     assigned_to = request.args.get("assigned_to")
     if assigned_to:
         q = q.filter_by(assigned_to=assigned_to)
+    project_id = request.args.get("project_id")
+    if project_id:
+        q = q.filter_by(project_id=project_id)
     if g.role == "technician" and request.args.get("mine") == "true":
         q = q.filter_by(assigned_to=g.user_id)
     wos = q.order_by(WorkOrder.created_at.desc()).all()
@@ -126,6 +129,7 @@ def create_work_order():
         status="draft",
         assigned_to=assigned_to,
         location_id=data.get("location_id") or None,
+        project_id=data.get("project_id") or None,
         problem_description=data.get("problem_description"),
         memo=data.get("memo"),
         scheduled_date=_parse_date(data.get("scheduled_date")),
@@ -169,6 +173,8 @@ def update_work_order(wo_id):
         wo.assigned_to = assigned_to
     if "location_id" in data:
         wo.location_id = data["location_id"] or None
+    if "project_id" in data:
+        wo.project_id = data["project_id"] or None
     if "lines" in data:
         _apply_lines(wo, data["lines"])
         changes["lines"] = "updated"

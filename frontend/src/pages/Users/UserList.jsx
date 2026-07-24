@@ -3,7 +3,7 @@ import client from "../../api/client";
 
 const ROLES = [
   "owner_admin", "accountant", "sales_ar_clerk", "warehouse_inventory",
-  "dispatcher", "technician", "read_only_auditor",
+  "dispatcher", "technician", "project_manager", "read_only_auditor",
 ];
 
 export default function UserList() {

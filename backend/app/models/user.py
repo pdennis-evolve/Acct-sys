@@ -16,6 +16,7 @@ ROLES = [
     "warehouse_inventory",
     "dispatcher",
     "technician",
+    "project_manager",
     "read_only_auditor",
 ]
 

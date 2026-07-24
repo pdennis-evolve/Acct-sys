@@ -36,6 +36,10 @@ class Bill(UUIDPKMixin, TimestampMixin, TenantScopedMixin, SoftDeleteMixin, Audi
     approved_by: Mapped[str | None] = mapped_column(db.ForeignKey("users.id"), nullable=True)
     approved_at: Mapped[datetime | None] = mapped_column(db.DateTime(timezone=True), nullable=True)
 
+    # Optional tag so a project's actual-cost rollup can include vendor
+    # expenses billed against it (see app/services/projects.py).
+    project_id: Mapped[str | None] = mapped_column(db.ForeignKey("projects.id"), nullable=True)
+
     vendor = relationship("Vendor", lazy="joined")
     lines = relationship(
         "BillLine", backref="bill", cascade="all, delete-orphan",
@@ -81,6 +85,7 @@ class Bill(UUIDPKMixin, TimestampMixin, TenantScopedMixin, SoftDeleteMixin, Audi
             "terms": self.terms,
             "approved_by": self.approved_by,
             "approved_at": self.approved_at.isoformat() if self.approved_at else None,
+            "project_id": self.project_id,
         }
         if include_lines:
             d["lines"] = [l.to_dict() for l in self.lines]

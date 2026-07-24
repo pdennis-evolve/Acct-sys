@@ -74,6 +74,13 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    heading: "Project Manager",
+    module: "project_manager",
+    items: [
+      { to: "/projects", label: "Projects" },
+    ],
+  },
+  {
     heading: "Reports",
     module: "ar_ap",
     roles: ["owner_admin", "accountant", "read_only_auditor"],

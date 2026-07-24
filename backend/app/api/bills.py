@@ -52,6 +52,9 @@ def list_bills():
     vendor_id = request.args.get("vendor_id")
     if vendor_id:
         q = q.filter_by(vendor_id=vendor_id)
+    project_id = request.args.get("project_id")
+    if project_id:
+        q = q.filter_by(project_id=project_id)
     bills = q.order_by(Bill.bill_date.desc()).all()
     return jsonify(bills=[b.to_dict(include_lines=False) for b in bills])
 
@@ -88,6 +91,7 @@ def create_bill():
         due_date=due_date,
         memo=data.get("memo"),
         terms=data.get("terms"),
+        project_id=data.get("project_id") or None,
         created_by=g.user_id,
     ))
     _apply_lines(bill, data.get("lines"))
@@ -121,6 +125,8 @@ def update_bill(bill_id):
         bill.bill_date = _parse_date(data["bill_date"])
     if "due_date" in data:
         bill.due_date = _parse_date(data["due_date"])
+    if "project_id" in data:
+        bill.project_id = data["project_id"] or None
     if "lines" in data:
         _apply_lines(bill, data["lines"])
         changes["lines"] = "updated"
