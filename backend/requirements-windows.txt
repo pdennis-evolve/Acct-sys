@@ -1,0 +1,7 @@
+# Windows-only extras, installed IN ADDITION to requirements.txt.
+# pywin32 ships Windows-only wheels on PyPI, so it deliberately lives in
+# its own file rather than the cross-platform requirements.txt -- `pip
+# install -r requirements.txt -r requirements-windows.txt` on the
+# Windows Server host.
+-r requirements.txt
+pywin32==308
